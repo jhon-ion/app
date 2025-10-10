@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Edit ODP - ION APP</title>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  :root {
+    --accent: #4f46e5;
+    --accent-dark: #3730a3;
+  }
+  body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: radial-gradient(circle at top right, #4f46e5, #1e3a8a);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+  .card {
+    width: 100%;
+    max-width: 760px;
+    background: rgba(255, 255, 255, 0.97);
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(2, 6, 23, 0.18);
+    backdrop-filter: blur(6px);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  h1 {
+    margin: 0;
+    color: #08124a;
+    font-size: 1.4rem;
+  }
+  .note {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    padding: 9px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .back {
+    background: #f3f4f6;
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    border: none;
+  }
+  .form {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .form .full { grid-column: 1 / -1; }
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #374151;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #e6e9ff;
+    font-size: 14px;
+  }
+  textarea { min-height: 100px; }
+  .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+  @media (max-width:680px){
+    .form { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <header>
+      <div>
+        <h1>Edit ODP</h1>
+        <p class="note">Ubah data ODP sesuai kebutuhan, lalu simpan.</p>
+      </div>
+      <div>
+        <a class="btn" id="btnHome">Beranda</a>
+      </div>
+    </header>
+
+    <form id="frmEdit" class="form" autocomplete="off">
+      <div>
+        <label for="namaOdp">Nama ODP</label>
+        <input id="namaOdp" name="namaOdp" required />
+      </div>
+
+      <div>
+        <label for="kodeOdp">Kode ODP</label>
+        <input id="kodeOdp" name="kodeOdp" required />
+      </div>
+
+      <div>
+        <label for="olt">OLT</label>
+        <select id="olt" name="olt" required></select>
+      </div>
+
+      <div>
+        <label for="pon">PON</label>
+        <input id="pon" name="pon" />
+      </div>
+
+      <div>
+        <label for="card">Card</label>
+        <input id="card" name="card" />
+      </div>
+
+      <div>
+        <label for="tikor">Tikor (koordinat)</label>
+        <input id="tikor" name="tikor" placeholder="-6.12345,107.12345" />
+      </div>
+
+      <div class="full">
+        <label for="linkMaps">Link Maps (opsional)</label>
+        <input id="linkMaps" name="linkMaps" placeholder="https://maps.google.com/..." />
+      </div>
+
+      <div class="full">
+        <label for="dataCore">Data Core</label>
+        <textarea id="dataCore" name="dataCore"></textarea>
+      </div>
+
+      <div class="full actions">
+        <button type="button" class="back" id="btnCancel">Kembali</button>
+        <button type="submit" class="btn">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="../../js/app.js"></script>
+  <script>
+    document.getElementById("btnHome").addEventListener("click", () => location.href="../../beranda.html");
+    document.getElementById("btnCancel").addEventListener("click", () => history.back());
+
+    // Muat daftar OLT dari app.js
+    function populateOltSelect(selected) {
+      const sel = document.getElementById("olt");
+      const olts = (window.OLT_LIST || []).sort();
+      sel.innerHTML = `<option value="">-- Pilih OLT --</option>` +
+        olts.map(o => `<option value="${o}" ${o === selected ? "selected" : ""}>${o}</option>`).join("");
+    }
+
+    // Ambil data ODP yang akan diedit
+    async function loadOdpData() {
+      const params = new URLSearchParams(window.location.search);
+      const kode = params.get("kode");
+      if (!kode) return Swal.fire("Perhatian", "Kode ODP tidak ditemukan!", "warning");
+
+      try {
+        const list = await OdpAPI.fetchOdp();
+        const data = list.find(d => String(d.kodeOdp).trim() === String(kode).trim());
+        if (!data) return Swal.fire("Gagal", "Data ODP tidak ditemukan.", "error");
+
+        // Isi form
+        document.getElementById("namaOdp").value = data.namaOdp || "";
+        document.getElementById("kodeOdp").value = data.kodeOdp || "";
+        document.getElementById("pon").value = data.pon || "";
+        document.getElementById("card").value = data.card || "";
+        document.getElementById("tikor").value = data.tikor || "";
+        document.getElementById("linkMaps").value = data.linkMaps || "";
+        document.getElementById("dataCore").value = data.dataCore || "";
+
+        populateOltSelect(data.olt);
+      } catch (err) {
+        console.error(err);
+        Swal.fire("Gagal", "Tidak dapat memuat data ODP.", "error");
+      }
+    }
+
+    // Simpan perubahan
+    document.getElementById("frmEdit").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const entry = {
+        namaOdp: namaOdp.value.trim(),
+        kodeOdp: kodeOdp.value.trim(),
+        olt: olt.value.trim(),
+        pon: pon.value.trim(),
+        card: card.value.trim(),
+        tikor: tikor.value.trim(),
+        linkMaps: linkMaps.value.trim(),
+        dataCore: dataCore.value.trim(),
+        tanggal: new Date().toLocaleString(),
+        user: JSON.parse(localStorage.getItem("user") || "{}").nama || "admin_inti"
+      };
+      try {
+        await OdpAPI.updateOdp(entry);
+        Swal.fire("Sukses", "Perubahan berhasil disimpan!", "success").then(() => location.href = "index.html");
+      } catch (err) {
+        Swal.fire("Gagal", err.message || "Terjadi kesalahan saat menyimpan.", "error");
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", loadOdpData);
+  </script>
+</body>
+</html>

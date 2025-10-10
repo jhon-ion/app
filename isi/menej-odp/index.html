@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daftar ODP - ION APP</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #e0e7ff, #f8fafc);
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    .header {
+      background: linear-gradient(90deg, #3b82f6, #6366f1);
+      color: white;
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .header button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .header button:hover { background: rgba(255,255,255,0.35); }
+
+    .content { padding: 20px; }
+    .search-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .search-bar {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: 0.2s;
+    }
+    .search-bar:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    }
+    .btn-add {
+      align-self: flex-start;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .btn-add:hover { background: #2563eb; }
+    .btn-add i {
+      width: 18px; height: 18px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    .table thead {
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+    .table th, .table td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .table tr:hover { background: #f9fafb; }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: 0.2s;
+    }
+    .icon-btn i {
+      width: 18px; height: 18px;
+    }
+    .icon-btn.view:hover { background: #e0f2fe; color: #2563eb; }
+    .icon-btn.edit:hover { background: #e0f7ef; color: #10b981; }
+    .icon-btn.delete:hover { background: #fee2e2; color: #dc2626; }
+
+    @media (max-width: 600px) {
+      .table th, .table td { font-size: 0.85rem; padding: 8px; }
+      .actions { gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span>Daftar ODP</span>
+      <button onclick="window.location.href='../../beranda.html'">Beranda</button>
+    </div>
+
+    <div class="content">
+      <div class="search-wrapper">
+        <input type="text" id="searchInput" class="search-bar" placeholder="Cari berdasarkan Kode, Nama, atau OLT..." />
+        <button class="btn-add" onclick="window.location.href='add.html'">
+          <i data-lucide="plus"></i> Tambah ODP
+        </button>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table class="table" id="odpTable">
+          <thead>
+            <tr>
+              <th>Kode</th>
+              <th>Nama</th>
+              <th>OLT</th>
+              <th>PON</th>
+              <th>Card</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6" align="center">Memuat data...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/app.js"></script>
+  <script>
+    async function loadODP() {
+      try {
+        const tableBody = document.querySelector("#odpTable tbody");
+        const list = await OdpAPI.fetchOdp();
+
+        if (!list || list.length === 0) {
+          tableBody.innerHTML = `<tr><td colspan="6" align="center">Belum ada data ODP</td></tr>`;
+          return;
+        }
+
+        tableBody.innerHTML = list.map(d => `
+          <tr>
+            <td>${d.kodeOdp || "-"}</td>
+            <td>${d.namaOdp || "-"}</td>
+            <td>${d.olt || "-"}</td>
+            <td>${d.pon || "-"}</td>
+            <td>${d.card || "-"}</td>
+            <td>
+              <div class="actions">
+                <button class="icon-btn view" title="Lihat Detail" onclick="goDetail('${d.kodeOdp}')">
+                  <i data-lucide="eye"></i>
+                </button>
+                <button class="icon-btn edit" title="Edit" onclick="goEdit('${d.kodeOdp}')">
+                  <i data-lucide="edit-3"></i>
+                </button>
+                <button class="icon-btn delete" title="Hapus" onclick="hapusODP('${d.kodeOdp}')">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join("");
+
+        if (typeof lucide !== "undefined") lucide.createIcons();
+      } catch (err) {
+        console.error(err);
+        Swal.fire("Error", "Gagal memuat data ODP", "error");
+      }
+    }
+
+    function goDetail(kode) {
+      window.location.href = `detail.html?kode=${encodeURIComponent(kode)}`;
+    }
+    function goEdit(kode) {
+      window.location.href = `edit.html?kode=${encodeURIComponent(kode)}`;
+    }
+    async function hapusODP(kode) {
+      const confirm = await Swal.fire({
+        title: "Hapus Data?",
+        text: `Yakin ingin menghapus ODP ${kode}?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Ya, Hapus",
+        cancelButtonText: "Batal"
+      });
+      if (!confirm.isConfirmed) return;
+
+      try {
+        await OdpAPI.deleteOdp(kode);
+        Swal.fire("Berhasil", "Data ODP telah dihapus.", "success");
+        loadODP();
+      } catch (err) {
+        console.error(err);
+        Swal.fire("Error", "Gagal menghapus data.", "error");
+      }
+    }
+
+    // 🔍 Pencarian real-time
+    document.getElementById("searchInput").addEventListener("input", function() {
+      const filter = this.value.toLowerCase();
+      const rows = document.querySelectorAll("#odpTable tbody tr");
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+      });
+    });
+
+    document.addEventListener("DOMContentLoaded", loadODP);
+  </script>
+</body>
+</html>

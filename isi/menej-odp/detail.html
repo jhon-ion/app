@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Detail ODP - ION APP</title>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+  body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(135deg, #e0e7ff, #f8fafc);
+    padding: 20px;
+  }
+  .container {
+    max-width: 720px;
+    background: #fff;
+    margin: 30px auto;
+    border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+  .header {
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    color: white;
+    padding: 18px 22px;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+  .content { padding: 22px; }
+  .row { margin-bottom: 14px; }
+  .label { font-weight: 600; color: #1e3a8a; margin-bottom: 4px; }
+  .value {
+    color: #111827;
+    font-size: 0.95rem;
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 8px 10px;
+    word-wrap: break-word;
+  }
+  .btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .btn-blue { background: #3b82f6; color: #fff; }
+  .btn-blue:hover { background: #2563eb; }
+  .btn-gray { background: #e5e7eb; color: #111827; }
+  .btn-gray:hover { background: #d1d5db; }
+  .btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+  .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 22px;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+  }
+  @media (max-width:600px){
+    .btn-group{flex-direction:column;}
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">Detail ODP</div>
+    <div class="content" id="detailContent">Memuat data...</div>
+    <div class="actions">
+      <button class="btn btn-gray" id="btnBack">Kembali</button>
+      <button class="btn btn-blue" id="btnHome">Beranda</button>
+    </div>
+  </div>
+
+  <script src="../../js/app.js"></script>
+  <script>
+    document.getElementById("btnBack").addEventListener("click", () => history.back());
+    document.getElementById("btnHome").addEventListener("click", () => location.href="../../beranda.html");
+
+    function copyText(text, label) {
+      if (!text) return Swal.fire("Kosong", `${label} tidak tersedia.`, "info");
+      navigator.clipboard.writeText(text);
+      Swal.fire("Disalin!", `${label} berhasil disalin.`, "success");
+    }
+
+    async function loadDetail() {
+      const params = new URLSearchParams(window.location.search);
+      const kode = params.get("kode");
+      if (!kode) return Swal.fire("Perhatian", "Kode ODP tidak ditemukan!", "warning");
+
+      try {
+        const list = await OdpAPI.fetchOdp();
+        const d = list.find(o => String(o.kodeOdp).trim() === String(kode).trim());
+        if (!d) return Swal.fire("Gagal", "Data tidak ditemukan.", "error");
+
+        // Fallback field universal
+        const user = d.user || d.User || d.USER || d.USER_INPUT || d.inputBy || d.admin_input || "-";
+        const tanggal = d.tanggal || d.Tanggal || d.TANGGAL || d.TANGGAL_INPUT || d.tgl_input || d.date || "-";
+
+        // Buat link maps aman untuk semua device
+        const mapsLink = (d.linkMaps && d.linkMaps.startsWith("http"))
+          ? d.linkMaps
+          : `https://www.google.com/maps?q=${encodeURIComponent(d.tikor || "")}`;
+
+        const el = document.getElementById("detailContent");
+        el.innerHTML = `
+          <div class="row"><div class="label">Kode ODP</div><div class="value">${d.kodeOdp || "-"}</div></div>
+          <div class="row"><div class="label">Nama ODP</div><div class="value">${d.namaOdp || "-"}</div></div>
+          <div class="row"><div class="label">OLT</div><div class="value">${d.olt || "-"}</div></div>
+          <div class="row"><div class="label">PON</div><div class="value">${d.pon || "-"}</div></div>
+          <div class="row"><div class="label">Card</div><div class="value">${d.card || "-"}</div></div>
+
+          <div class="row">
+            <div class="label">Tikor</div>
+            <div class="value">
+              ${d.tikor || "-"}
+              <div class="btn-group">
+                <button class="btn btn-gray" onclick="copyText('${d.tikor || ''}','Tikor')">Salin Tikor</button>
+                <a href="${mapsLink}" target="_blank" class="btn btn-blue" style="text-decoration:none;">Lihat Lokasi</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="label">Data Core</div>
+            <div class="value">
+              <div>${d.dataCore || "-"}</div>
+              <div class="btn-group">
+                <button class="btn btn-gray" onclick="copyText('${(d.dataCore||'').replace(/'/g, '')}','Data Core')">Salin DataCore</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row"><div class="label">Admin Input</div><div class="value">${user}</div></div>
+          <div class="row"><div class="label">Tanggal Input</div><div class="value">${tanggal}</div></div>
+        `;
+      } catch (err) {
+        console.error(err);
+        Swal.fire("Error", "Gagal memuat detail ODP.", "error");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadDetail);
+  </script>
+</body>
+</html>

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tambah ODP - ION APP</title>
+
+<!-- SweetAlert -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  :root {
+    --accent: #4f46e5;
+    --accent-dark: #3730a3;
+  }
+  body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background: radial-gradient(circle at top right, #4f46e5, #1e3a8a);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+  .card {
+    width: 100%;
+    max-width: 760px;
+    background: rgba(255,255,255,0.97);
+    padding: 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(2,6,23,0.18);
+    backdrop-filter: blur(6px);
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  h1 { margin: 0; color: #08124a; font-size: 1.4rem; }
+  .note {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    padding: 9px 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .back {
+    background: #f3f4f6;
+    color: var(--accent);
+    border-radius: 10px;
+    padding: 9px 14px;
+    cursor: pointer;
+    border: none;
+  }
+  .form {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 14px;
+  }
+  .form .full { grid-column: 1 / -1; }
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #374151;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #e6e9ff;
+    font-size: 14px;
+  }
+  textarea { min-height: 100px; }
+  .actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+  @media (max-width:680px) {
+    .form { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <header>
+      <div>
+        <h1>Tambah ODP</h1>
+        <p class="note">Isi data berikut dengan lengkap. Dropdown OLT diambil langsung dari app.js</p>
+      </div>
+      <div>
+        <a class="btn" id="btnHome">Beranda</a>
+      </div>
+    </header>
+
+    <form id="frmAdd" class="form" autocomplete="off">
+      <div>
+        <label for="namaOdp">Nama ODP</label>
+        <input id="namaOdp" name="namaOdp" required />
+      </div>
+
+      <div>
+        <label for="kodeOdp">Kode ODP</label>
+        <input id="kodeOdp" name="kodeOdp" required />
+      </div>
+
+      <div>
+        <label for="olt">OLT</label>
+        <select id="olt" name="olt" required>
+          <option value="">Memuat OLT...</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="pon">PON</label>
+        <input id="pon" name="pon" />
+      </div>
+
+      <div>
+        <label for="card">Card</label>
+        <input id="card" name="card" />
+      </div>
+
+      <div>
+        <label for="tikor">Tikor (koordinat)</label>
+        <input id="tikor" name="tikor" placeholder="-6.12345,107.12345" />
+      </div>
+
+      <div class="full">
+        <label for="linkMaps">Link Maps (opsional)</label>
+        <input id="linkMaps" name="linkMaps" placeholder="https://maps.google.com/..." />
+      </div>
+
+      <div class="full">
+        <label for="dataCore">Data Core</label>
+        <textarea id="dataCore" name="dataCore"></textarea>
+      </div>
+
+      <div class="full actions">
+        <button type="button" class="back" id="btnCancel">Kembali</button>
+        <button type="submit" class="btn">Simpan ODP</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- pastikan path sesuai -->
+  <script src="../../js/app.js"></script>
+  <script>
+    // ✅ Tombol navigasi
+    document.getElementById("btnHome").addEventListener("click", () => location.href="../../beranda.html");
+    document.getElementById("btnCancel").addEventListener("click", () => history.back());
+
+    // ✅ Fungsi untuk memuat dropdown OLT dari daftar static di app.js
+    function populateOltSelect() {
+      const sel = document.getElementById("olt");
+      const olts = (window.OLT_LIST || []).sort();
+
+      if (!olts.length) {
+        sel.innerHTML = `<option value="">(Belum ada data OLT di app.js)</option>`;
+        return;
+      }
+
+      sel.innerHTML = `<option value="">-- Pilih OLT --</option>` +
+        olts.map(o => `<option value="${o}">${o}</option>`).join("");
+    }
+
+    // Jalankan setelah DOM siap
+    document.addEventListener("DOMContentLoaded", populateOltSelect);
+
+    // ✅ Proses simpan data ODP baru
+    document.getElementById("frmAdd").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const entry = {
+        namaOdp: document.getElementById("namaOdp").value.trim(),
+        kodeOdp: document.getElementById("kodeOdp").value.trim(),
+        olt: document.getElementById("olt").value.trim(),
+        pon: document.getElementById("pon").value.trim(),
+        card: document.getElementById("card").value.trim(),
+        tikor: document.getElementById("tikor").value.trim(),
+        linkMaps: document.getElementById("linkMaps").value.trim(),
+        dataCore: document.getElementById("dataCore").value.trim(),
+        tanggal: new Date().toLocaleString(),
+        user: user.nama || localStorage.getItem("CURRENT_USER_ALIAS") || "admin_inti"
+      };
+
+      try {
+        await OdpAPI.addOdp(entry);
+        Swal.fire("Sukses", "Data ODP berhasil disimpan!", "success")
+          .then(() => location.href = "index.html");
+      } catch (err) {
+        Swal.fire("Gagal", err.message || "Terjadi kesalahan saat menyimpan data.", "error");
+      }
+    });
+  </script>
+</body>
+</html>
